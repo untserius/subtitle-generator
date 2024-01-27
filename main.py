@@ -6,17 +6,14 @@ from pydub import AudioSegment
 from pydub.silence import split_on_silence
 from moviepy.editor import VideoFileClip
 
-# import tkinter as tk
-# from tkinter import filedialog
-
-
-# Set the path to your Google Cloud service account key JSON file
+# Path for Google Cloud service account key JSON file
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = r"D:\Study\Keys\silken-setting-411607-c24dc2d5768b.json"
 print("GOOGLE_APPLICATION_CREDENTIALS:", os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"))
 
 
 r = sr.Recognizer()
 
+# To transcribe audio chunks to text
 def transcribe_audio(audio_chunk):
     audio_io = io.BytesIO()
     audio_chunk.export(audio_io, format="wav")
@@ -28,11 +25,13 @@ def transcribe_audio(audio_chunk):
     text = r.recognize_google_cloud(audio_data)
     return text
 
+# To extract audio from a video file
 def extract_audio_from_video(video_path):
     clip = VideoFileClip(video_path)
     audio = clip.audio
     return audio
 
+# To create subtitles from audio chunks
 def create_subtitle(path, output_file):
     sound = AudioSegment.from_file(path)
 
@@ -51,6 +50,7 @@ def create_subtitle(path, output_file):
 
     subtitles = []
 
+    # Iterating through audio chunks
     for i, chunk in enumerate(chunks, start=1):
         try:
             chunk_text = transcribe_audio(chunk)
@@ -65,6 +65,7 @@ def create_subtitle(path, output_file):
     save_subtitles(subtitles, output_file)
     burn_subtitles(path, output_file)
 
+# To save subtitles to a file
 def save_subtitles(subtitles, output_file):
     with open(output_file, "w") as file:
         for i, start_time, end_time, text in subtitles:
@@ -72,42 +73,25 @@ def save_subtitles(subtitles, output_file):
             file.write(f"{format_timestamp(start_time)} --> {format_timestamp(end_time)}\n")
             file.write(f"{text}\n\n")
 
+# To burn subtitles onto a video file
 def burn_subtitles(video_path, subtitle_path):
-    output_video_path = os.path.splitext(video_path)[0] + "_with_subtitles.mp4"
+    base_name, ext = os.path.splitext(os.path.basename(video_path))
+    output_video_path = os.path.join("output", f"{base_name}_with_subtitles{ext}")
     command = f'ffmpeg -i "{video_path}" -vf "subtitles={subtitle_path}" "{output_video_path}" -y'
     subprocess.run(command, shell=True)
 
+# To format timestamp in subtitle format
 def format_timestamp(seconds):
     milliseconds = int((seconds - int(seconds)) * 1000)
     minutes, seconds = divmod(int(seconds), 60)
     hours, minutes = divmod(minutes, 60)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
 
-# root = tk.Tk()
-# root.title("Video Subtitle Generator")
+path = "media/test2.mp4"
+output_file = "output/test2.srt"
+output_video = "output"
 
-# video_path = filedialog.askopenfilename(title="Select Video File", filetypes=(("MP4 files", "*.mp4"), ("All files", "*.*")))
-
-# if video_path:
-#         output_file = "transcribed_text.srt"
-#         create_subtitle(video_path, output_file)
-#         result_label.config(text=f"Subtitles generated and burned onto video.\nOutput saved to {output_file}")
-
-
-# def create_subtitle(video_path, output_file):
-
-#     result_label.config(text="Transcription and subtitle generation completed.")
-
-
-# select_button = tk.Button(root, text="Select Video File", command=generate_subtitles)
-# select_button.pack(pady=10)
-
-# result_label = tk.Label(root, text="")
-# result_label.pack(pady=10)
-
-# root.mainloop()
-
-path = "test3.mp4"
-output_file = "test3.srt"
 create_subtitle(path, output_file)
-print(f"Transcribed text saved to {output_file}")
+
+print(f"TRANSCRIBED TEXT SAVED TO: {output_file}")
+print(f"VIDEO WITH BURNED SUBTITLES SAVED TO: {output_video}")
